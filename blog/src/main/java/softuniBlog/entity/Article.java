@@ -14,6 +14,8 @@ public class Article {
 
     private User author;
 
+    private Category category;
+
     public Article() {
     }
 
@@ -21,6 +23,7 @@ public class Article {
         this.title = title;
         this.content = content;
         this.author = author;
+
     }
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,6 +59,17 @@ public class Article {
     public void setAuthor(User author) {
         this.author = author;
     }
+
+    @ManyToOne()
+    @JoinColumn(nullable = false, name = "categoryId")
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
     @Transient()
     public String getSummary() {
         return this.getContent().substring(0, this.getContent().length()/2)+ "...";
