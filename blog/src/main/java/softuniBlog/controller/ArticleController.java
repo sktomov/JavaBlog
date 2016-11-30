@@ -13,9 +13,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import softuniBlog.bindingModel.ArticleBindingModel;
 import softuniBlog.entity.Article;
+import softuniBlog.entity.Category;
+import softuniBlog.entity.Tag;
 import softuniBlog.entity.User;
 import softuniBlog.repository.ArticleRepository;
+import softuniBlog.repository.CategoryRepository;
+import softuniBlog.repository.TagRepository;
 import softuniBlog.repository.UserRepository;
+
+import java.util.HashSet;
+import java.util.List;
 
 @Controller
 public class ArticleController {
@@ -25,24 +32,53 @@ public class ArticleController {
     @Autowired
     private ArticleRepository articleRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
+
     @GetMapping("article/create")
     @PreAuthorize("isAuthenticated()")
     public String create(Model model){
         model.addAttribute("view", "article/create");
+
+        List<Category> categories = this.categoryRepository.findAll();
+
+        model.addAttribute("categories", categories);
         return "base-layout";
     }
     @PostMapping("article/create")
     @PreAuthorize("isAuthenticated()")
     public String createProcess(ArticleBindingModel articleBindingModel){
         UserDetails user = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Category category = this.categoryRepository.findOne(articleBindingModel.getCategoryId());
+        HashSet<Tag> tags = this.findTagsFromString(articleBindingModel.getTagString());
         User userEntity = this.userRepository.findByEmail(user.getUsername());
         Article articleEntity = new Article(
                 articleBindingModel.getTitle(),
                 articleBindingModel.getContent(),
-                userEntity
+                userEntity,
+                category,
+                tags
         );
         this.articleRepository.saveAndFlush(articleEntity);
         return "redirect:/";
+    }
+
+    private HashSet<Tag> findTagsFromString(String tagString) {
+        HashSet<Tag> tags = new HashSet<>();
+        String[] tagNames = tagString.split(",\\s*");
+        for (String tagName:tagNames) {
+          Tag currentTag = this.tagRepository.findByName(tagName);
+
+            if(currentTag == null){
+                currentTag = new Tag(tagName);
+                this.tagRepository.saveAndFlush(currentTag);
+            }
+            tags.add(currentTag);
+        }
+        return tags;
     }
 
     @GetMapping("/article/{id}")
@@ -72,9 +108,12 @@ public class ArticleController {
             return "redirect:/";
         }
         Article article = this.articleRepository.findOne(id);
+
         if(!isUserAuhorOrAdmin(article)){
             return "redirect:/article/"+id;
         }
+        List<Category> categories = this.categoryRepository.findAll();
+        model.addAttribute("categories", categories);
         model.addAttribute("view", "article/edit");
         model.addAttribute("article", article);
 
@@ -88,11 +127,16 @@ public class ArticleController {
             return "redirect:/";
         }
         Article article = this.articleRepository.findOne(id);
+
         if(!isUserAuhorOrAdmin(article)){
             return "redirect:/article/"+id;
         }
+        Category category = this.categoryRepository.findOne(articleBindingModel.getCategoryId());
+        HashSet<Tag> tags = this.findTagsFromString(articleBindingModel.getTagString());
         article.setContent(articleBindingModel.getContent());
         article.setTitle(articleBindingModel.getTitle());
+        article.setCategory(category);
+        article.setTags(tags);
 
         this.articleRepository.saveAndFlush(article);
 

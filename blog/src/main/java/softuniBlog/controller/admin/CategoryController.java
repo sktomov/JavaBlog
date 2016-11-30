@@ -17,7 +17,9 @@ import softuniBlog.entity.Category;
 import softuniBlog.repository.ArticleRepository;
 import softuniBlog.repository.CategoryRepository;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin/categories")
@@ -34,7 +36,7 @@ public class CategoryController {
         model.addAttribute("view", "admin/category/list");
 
         List<Category> categories = this.categoryRepository.findAll();
-
+        categories = categories.stream().sorted(Comparator.comparingInt(Category::getId)).collect(Collectors.toList());
         model.addAttribute("categories", categories);
         return "base-layout";
     }
