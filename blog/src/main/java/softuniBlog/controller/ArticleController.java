@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +24,8 @@ import softuniBlog.repository.UserRepository;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 public class ArticleController {
@@ -38,6 +41,15 @@ public class ArticleController {
     @Autowired
     private TagRepository tagRepository;
 
+    @GetMapping("/category/{id}")
+    public String list(Model model, @PathVariable Integer id){
+        Set<Article> articles = this.categoryRepository.findOne(id).getArticles();
+
+        model.addAttribute("view", "article/list");
+        model.addAttribute("articles", articles);
+
+        return "base-layout";
+    }
     @GetMapping("article/create")
     @PreAuthorize("isAuthenticated()")
     public String create(Model model){
@@ -112,10 +124,13 @@ public class ArticleController {
         if(!isUserAuhorOrAdmin(article)){
             return "redirect:/article/"+id;
         }
+        String tagString = article.getTags().stream().map(Tag::getName).collect(Collectors.joining(", "));
         List<Category> categories = this.categoryRepository.findAll();
+
         model.addAttribute("categories", categories);
         model.addAttribute("view", "article/edit");
         model.addAttribute("article", article);
+        model.addAttribute("tags", tagString);
 
         return "base-layout";
     }
